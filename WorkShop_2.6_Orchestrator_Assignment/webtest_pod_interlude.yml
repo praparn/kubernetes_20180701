@@ -16,4 +16,4 @@ spec:
         - containerPort: 5000
           protocol: TCP
   nodeSelector:
-    dedicated: master
+    beta.kubernetes.io/os : linux
