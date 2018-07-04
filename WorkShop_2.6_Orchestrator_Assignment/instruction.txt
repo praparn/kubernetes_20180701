@@ -79,6 +79,7 @@ Part 4: Inter-Pod Affinity and Anti-affinity:
 
 Part 5: Taint and Tolerations
 1. (Master) Set Taint on node Master for admin operate by command:
+	kubectl get nodes
 	kubectl taint nodes <Master Name> dedicated=admin:NoSchedule
 
 2. (Master) Create Pods by command:
@@ -100,5 +101,6 @@ Part 5: Taint and Tolerations
 6. (Master) Delete and Clear Taint by command:
 	Google Cloud/Onpremise:
 	kubectl delete -f webtest_pod_taint.yml	(In case run via github or Play with K8S:: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.6_Orchestrator_Assignment/webtest_pod_taint.yml)
+	kubectl get nodes
 	kubectl taint nodes <Master Name> dedicated-
 	
