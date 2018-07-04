@@ -16,4 +16,4 @@ spec:
         - containerPort: 5000
           protocol: TCP
   nodeSelector:
-     kubernetes.io/hostname: kubernetes-1
+    dedicated: master

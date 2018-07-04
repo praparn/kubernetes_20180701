@@ -3,76 +3,58 @@ Note: This instruction will demonstration for assign pods to node with several c
 ====================================================
 Lab Description:
 Label: storage					Machine name		Roles:						IP Address:
-M2								kubernetes-ms		Master						192.168.99.200
-SSD								kubernetes-1		NodePort					192.168.99.201
-SAS								kubernetes-2		NodePort					192.168.99.202
+Machine name		            Roles:						IP Address:
+GroupX_Kubernetes_Master	    Master						10.0.X.X
+GroupX_Kubernetes_Worker1       NodePort					10.0.X.X
+GroupX_Kubernetes_Worker2       NodePort					10.0.X.X
 ===================================================
 Part 1: nodeSelector:
-1. (Client Machine) Start Cluster by command (If stop)
-	Google Cloud:
-	gcloud compute instances start kubernetes-1 kubernetes-2 kubernetes-ms -q
-
-	Onpremise:
-	ssh xxx@x.x.x.xx
-
-	Play with K8S:
-	http://labs.play-with-k8s.com/
+1. (Client Machine) SSH to kubernetes
+ssh -i k8s_lab ubuntu@<ip address of Master>
+ssh -i k8s_lab ubuntu@<ip address of NodePort1>
+ssh -i k8s_lab ubuntu@<ip address of NodePort2>
 
 2. (Client Machine) SCP file test by command (Or github can skip):
-	Google Cloud:
-	    Optional:
-		gcloud compute scp *.yml kubernetes-ms:/home/<your account>/
-		gcloud compute --project "kubernetesproject-170714" ssh "kubernetes-ms"
+scp -i k8s_lab scp *.yml ubuntu@<ip address of master>:/home/ubuntu/
+scp -i k8s_lab ubuntu@<ip address of node1>:/home/ubuntu/
+scp -i k8s_lab ubuntu@<ip address of node2>:/home/ubuntu/
 
-	Onpremise:
-	scp *.yml xxxxxx@x.x.x.x:/home/<your account>/
+3. (Master) Add Label by command:
 
-	Play with K8S:
-	No Need ^^
+kubectl get nodes:
+====================================================
+Example Output:
+kubuntu@ip-10-0-1-17:~$ kubectl get nodes
+NAME            STATUS    ROLES     AGE       VERSION
+ip-10-0-1-17    Ready     master    2h        v1.9.2
+ip-10-0-1-23    Ready     <none>    1h        v1.9.2
+ip-10-0-1-246   Ready     <none>    1h        v1.9.2
+====================================================
 
-3. (kubernetes-ms,node1) Add Label by command:
-	Google Cloud/Onpremise:
-	kubectl label nodes kubernetes-ms storage=M2
-	kubectl label nodes kubernetes-1 storage=SSD
-	kubectl label nodes kubernetes-2 storage=SAS
+	kubectl label nodes <name master> storage=M2
+	kubectl label nodes <name worker1> storage=SSD
+	kubectl label nodes <name workder2 storage=SAS
 
-	Play with K8S:
-	kubectl label nodes node1 storage=M2
-	kubectl label nodes node2 storage=SSD
-	kubectl label nodes node3 storage=SAS
-
-4. (kubernetes-ms,node1) Create Pods by command:
-	Google Cloud/Onpremise:
+4. (Master) Create Pods by command:
 	kubectl create -f webtest_pod_nodeselector.yml	(In case run via github or Play with K8S: kubectl create -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.6_Orchestrator_Assignment/webtest_pod_nodeselector.yml)
 
-5. (kubernetes-ms,node1) Monitor Pods location by command:
+5. (Master) Monitor Pods location by command:
 	kubectl get pods -o wide
 	kubectl describe pods/webtest
 
-6. (kubernetes-ms,node1) Delete Pods by command:
-	Google Cloud/Onpremise:
+6. (Master) Delete Pods by command:
 	kubectl delete -f webtest_pod_nodeselector.yml	(In case run via github or Play with K8S: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.6_Orchestrator_Assignment/webtest_pod_nodeselector.yml)
 
 Part 2: Interlude:
-1. (kubernetes-ms,node1) Create Pods by command:
-	Google Cloud/Onpremise:
+1. (Master) Create Pods by command:
 	kubectl create -f webtest_pod_interlude.yml	(In case run via github: kubectl create -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.6_Orchestrator_Assignment/webtest_pod_interlude.yml)
 
-	Play with K8S:
-	kubectl create -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.6_Orchestrator_Assignment/webtest_pod_interlude_k8s.yml
-
-
-2. (kubernetes-ms,node1) Monitor Pods location by command:
+2. (Master) Monitor Pods location by command:
 	kubectl get pods -o wide
 	kubectl describe pods/webtest
 
-3. (kubernetes-ms,node1) Delete Pods by command:
-	Google Cloud/Onpremise:
+3. (Master) Delete Pods by command:
 	kubectl delete -f webtest_pod_interlude.yml	(In case run via github: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.6_Orchestrator_Assignment/webtest_pod_interlude.yml)
-
-	Play with K8S:
-	kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.6_Orchestrator_Assignment/webtest_pod_interlude_k8s.yml
-
 
 Part 3: Affinity (Node):
 1. (kubernetes-ms,node1) Create Pods by command:
