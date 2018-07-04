@@ -21,4 +21,4 @@ spec:
     value: "admin"
     effect: "NoSchedule"
   nodeSelector:
-     kubernetes.io/hostname: kubernetes-1
+    storage: M2
