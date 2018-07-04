@@ -1,0 +1,190 @@
+Instruction for Workshop 2.5 Kubernetes in RealWorld:
+Note: This instruction will start lab for kubernetes for real workshop on AWS:
+====================================================
+Lab Description: (Check you excel sheet)
+Machine name		            Roles:						IP Address:
+GroupX_Kubernetes_Master	    Master						10.0.X.X
+GroupX_Kubernetes_Worker1       NodePort					10.0.X.X
+GroupX_Kubernetes_Worker2       NodePort					10.0.X.X
+===================================================
+0. Follow document pdf for access ssh (Windows/MACOS)
+
+1. (all node) SSH to target machine with command below:
+ssh -i k8s_lab ubuntu@<ip address of Master>
+ssh -i k8s_lab ubuntu@<ip address of NodePort1>
+ssh -i k8s_lab ubuntu@<ip address of NodePort2>
+
+2. (all node) Setup Script for Kubernetes
+sudo su -
+chmod +x /home/ubuntu/setup.sh
+/home/ubuntu/setup.sh
+iptables-save > /tmp/iptables.conf
+sed -i -- 's/DROP/ACCEPT/g' /tmp/iptables.conf
+iptables-restore < /tmp/iptables.conf
+exit
+
+3. (all node) Relogon all node
+ssh -i k8s_lab ubuntu@<ip address of Master>
+ssh -i k8s_lab ubuntu@<ip address of NodePort1>
+ssh -i k8s_lab ubuntu@<ip address of NodePort2>
+
+4. (Master) initial cluster by command:
+	sudo su -
+	kubeadm init --kubernetes-version=v1.9.2 --pod-network-cidr=192.168.0.0/16 --apiserver-cert-extra-sans <public ip>
+	exit
+
+	*Remark: Need to record token Output
+    -------------------------------------------------
+    Token output:
+    -------------------------------------------------
+    kubeadm join --token 2d2353.98187e352c741dd0 10.0.1.17:6443 --discovery-token-ca-cert-hash sha256:c3e75e689dadfb85baad004b7b777801c489eb1551901abc8e3c19c1e15b7add
+	-------------------------------------------------
+
+5. (Master) Setup run cluster system by command (Regular User):
+	mkdir -p $HOME/.kube
+    sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+	sudo chown $(id -u):$(id -g) $HOME/.kube/config
+	kubectl taint nodes --all node-role.kubernetes.io/master-
+
+6. (local) SCP Certificate from AWS to Local:
+    scp -i k8s_lab ubuntu@<ip address of master sleep>:/home/ubuntu/.kube/config adminconfig.conf
+    mkdir ~/.kube
+    cp adminconfig.conf ~/.kube/config
+
+  Optional:
+	1. copy configuration on adminconfig.conf ==> ~/.kube/config (3 Part: cluster, context, users)
+	2. kubectl config use-context <context name>
+
+7. (Master) Create calico net plugin for network for cluster by command:
+	kubectl apply -f https://docs.projectcalico.org/v3.1/getting-started/kubernetes/installation/hosted/kubeadm/1.7/calico.yaml
+
+8. (Master) Check master readiness and dns by command (Take 5 - 10 min):
+	watch kubectl get pods --all-namespaces
+
+9. (Master) Install dashboard by command:
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml
+kubectl apply -f https://github.com/kubernetes/heapster/raw/master/deploy/kube-config/rbac/heapster-rbac.yaml
+kubectl apply -f https://github.com/kubernetes/heapster/raw/master/deploy/kube-config/influxdb/heapster.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/heapster/master/deploy/kube-config/influxdb/influxdb.yaml
+kubectl create clusterrolebinding insecure-dashboard --clusterrole=cluster-admin --serviceaccount=kube-system:kubernetes-dashboard
+kubectl get pods --all-namespaces
+
+10. (local) Configure local kubectl for access and command cluster:
+kubectl --kubeconfig ./adminconfig.conf get nodes
+kubectl --kubeconfig ./adminconfig.conf get svc
+
+13. (local) Edit file adminconfig.conf for change ip address from private to public ip:
+vi adminconfig.conf
+
+14. (local) Configure local kubectl for access and command cluster:
+kubectl --kubeconfig ./adminconfig.conf get nodes
+kubectl --kubeconfig ./adminconfig.conf get svc
+
+
+Optional:
+	1. copy configuration on adminconfig.conf ==> ~/.kube/config (3 Part: cluster, context, users)
+	2. kubectl config use-context <context name>
+	
+
+
+
+15. (kubenetes-ms) Install dashboard by command:
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml
+kubectl apply -f https://github.com/kubernetes/heapster/raw/master/deploy/kube-config/rbac/heapster-rbac.yaml
+kubectl apply -f https://github.com/kubernetes/heapster/raw/master/deploy/kube-config/influxdb/heapster.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/heapster/master/deploy/kube-config/influxdb/influxdb.yaml
+kubectl create clusterrolebinding insecure-dashboard --clusterrole=cluster-admin --serviceaccount=kube-system:kubernetes-dashboard
+kubectl get pods --all-namespaces
+
+16. (local) Open dashboard by command:
+kubectl --kubeconfig ./adminconfig.conf proxy --accept-hosts '.*'
+
+17. (local) Open browser by command
+http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/
+
+18. (kubernetes-1),(kubernetes-2) ssh and join to cluster by command:
+	sudo su -
+	kubeadm join --token 8c2350.f55343444a6ffc46 192.168.99.200:6443 --discovery-token-ca-cert-hash <sha256 key>
+	exit
+	-------------------------------------------------
+	Sample Output
+	-------------------------------------------------
+root@kubernetes-1:~# kubeadm join --token 8c2350.f55343444a6ffc46 192.168.99.200:6443 --discovery-token-ca-cert-hash sha256:7c1f1a2c0f578f06b5e449631d38eaeacd47f346cce2e965799d164719dbbf89
+[preflight] Running pre-flight checks.
+	[WARNING SystemVerification]: docker version is greater than the most recently validated version. Docker version: 17.12.0-ce. Max validated version: 17.03
+	[WARNING FileExisting-crictl]: crictl not found in system path
+[discovery] Trying to connect to API Server "192.168.99.200:6443"
+[discovery] Created cluster-info discovery client, requesting info from "https://192.168.99.200:6443"
+[discovery] Requesting info from "https://192.168.99.200:6443" again to validate TLS against the pinned public key
+[discovery] Cluster info signature and contents are valid and TLS certificate validates against pinned roots, will use API Server "192.168.99.200:6443"
+[discovery] Successfully established connection with API Server "192.168.99.200:6443"
+
+This node has joined the cluster:
+* Certificate signing request was sent to master and a response
+  was received.
+* The Kubelet was informed of the new secure connection details.
+
+Run 'kubectl get nodes' on the master to see this node join the cluster.
+	-------------------------------------------------
+
+19. (kubernetes-ms) Check Node in Cluster by command (This take 5 - 10 min):
+kubectl get nodes
+
+-------------------------------------------------
+Sample Output
+-------------------------------------------------
+NAME            STATUS    ROLES     AGE       VERSION
+kubernetes-1    Ready     <none>    4m        v1.9.2
+kubernetes-2    Ready     <none>    23s       v1.9.2
+kubernetes-ms   Ready     master    36m       v1.9.2
+-------------------------------------------------
+
+20. (kubernetes-ms)Check Pods from all cluster system running by command:
+kubectl get pods --all-namespaces
+
+-------------------------------------------------
+Sample Output
+-------------------------------------------------
+NAMESPACE     NAME                                   READY     STATUS    RESTARTS   AGE
+kube-system   etcd-kubeserve-ms                      1/1       Running   0          10m
+kube-system   kube-apiserver-kubeserve-ms            1/1       Running   0          10m
+kube-system   kube-controller-manager-kubeserve-ms   1/1       Running   0          11m
+kube-system   kube-dns-2425271678-xhhk6              3/3       Running   0          11m
+kube-system   kube-flannel-ds-1h8cv                  2/2       Running   2          7m
+kube-system   kube-flannel-ds-83xdr                  2/2       Running   0          6m
+kube-system   kube-flannel-ds-n9ws7                  2/2       Running   0          11m
+kube-system   kube-proxy-6d7g1                       1/1       Running   0          7m
+kube-system   kube-proxy-qzfdr                       1/1       Running   0          6m
+kube-system   kube-proxy-vzswv                       1/1       Running   0          11m
+kube-system   kube-scheduler-kubeserve-ms            1/1       Running   0          11m
+-------------------------------------------------
+
+21. (kubernetes-ms) Test deployment basic nginx pods by command
+kubectl run webtest --image=labdocker/nginx:latest --port=80
+kubectl get pods -o wide
+kubectl expose deployment webtest --target-port=80 --type=NodePort
+kubectl get svc -o wide
+
+22. (kubernetes-ms) Test get web inside farm by curl:
+curl http://192.168.99.200:<port>
+curl http://192.168.99.201:<port>
+curl http://192.168.99.202:<port>
+
+23. (Client Machine) Test get web outside farm by curl or browser:
+gcloud compute instances list
+------------------------------------
+Sample Output
+------------------------------------
+NAME           ZONE          MACHINE_TYPE   PREEMPTIBLE  INTERNAL_IP     EXTERNAL_IP      STATUS
+kubernetes-1   asia-east1-a  n1-standard-1               192.168.99.201  35.194.199.107  RUNNING
+kubernetes-2   asia-east1-a  n1-standard-1               192.168.99.202  35.201.184.247  RUNNING
+kubernetes-ms  asia-east1-a  n1-standard-1               192.168.99.200  35.201.165.23   RUNNING
+------------------------------------
+
+curl http://<External IP of MS>:<port>
+curl http://<External IP of MS>:<port>
+curl http://<External IP of MS>:<port>
+
+24. (kubeserve-ms) Cleanup Lab by command:
+kubectl delete deployment/webtest
+kubectl delete svc/webtest
