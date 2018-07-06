@@ -10,13 +10,14 @@ Part0: Enable Heapster and Metric Server
 	git clone https://github.com/kubernetes-incubator/metrics-server.git
 	cd metrics-server/
 	kubectl create -f deploy/1.8+/
+	watch kubectl get pods --all-namespaces
 
 
 ====================================================
 Part 1: HPA Configuration:
 ====================================================
 1. Create Namespace by command:
-	kubectl create -f webtest_deploy_hpa.yml (In case github: kubectl create -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.8_HPA_WorkShop/webtest_deploy_hpa.yml)
+	kubectl create -f webtest_deploy_hpa.yml (In case github: kubectl create -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.8_HPA_WorkShop/webtest_deploy_hpa.yml)
 	 
 2. Check Pods status by command:
 	kubectl get deployment/webtest -o wide
@@ -30,14 +31,12 @@ Part 1: HPA Configuration:
 
 5. Monitor by command:
 	kubectl get hpa
-	kubectl describe hpa/<hpa name>
+	kubectl describe hpa/webtest
 
 6. Generate Load:
-	minikube ssh
-	docker pull busybox
 	kubectl run -i --tty load-generator --image=busybox /bin/sh	<Check Until Load Generator WorkFine>
 	wget -q -O- http://webtest.default.svc.cluster.local:5000
-	while true; sleep 0.01; do wget -q -O- http://webtest.default.svc.cluster.local:5000; done
+	while true; sleep 0.001; do wget -q -O- http://webtest.default.svc.cluster.local:5000; done
 
 7. Create another shell for monitor performance by command: (Interval is 5 min)
 	kubectl get hpa
@@ -54,4 +53,4 @@ Part 1: HPA Configuration:
 10. Cleanup lab by command:
 	kubectl delete hpa/webtest
 	kubectl delete deployment/load-generator
-	kubectl delete -f webtest_deploy_hpa.yml (In case github: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.8_HPA_WorkShop/webtest_deploy_hpa.yml)
+	kubectl delete -f webtest_deploy_hpa.yml (In case github: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.8_HPA_WorkShop/webtest_deploy_hpa.yml)

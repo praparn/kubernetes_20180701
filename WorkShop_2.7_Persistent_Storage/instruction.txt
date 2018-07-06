@@ -2,53 +2,44 @@ Instruction for Workshop 2.7 Kubernetes for Stateful Application:
 Note: This instruction will start lab for kubernetes for real workshop:
 ====================================================
 Lab Description:
-VMName:							Machine name		Roles:						IP Address:
-kubernetes-ms					kubernetes-ms		Master						192.168.99.200
-kubernetes-1					kubernetes-1		NodePort					192.168.99.201
-kubernetes-2					kubernetes-2		NodePort					192.168.99.202
+Machine name		            Roles:						IP Address: (Private)		IP Address: (Public)
+GroupX_Kubernetes_Master	    Master						10.0.X.X					X.X.X.X					
+GroupX_Kubernetes_Worker1       NodePort					10.0.X.X					X.X.X.X
+GroupX_Kubernetes_Worker2       NodePort					10.0.X.X					X.X.X.X
 ===================================================
 
 ===================================================
 Part 1: Initial NFS ShareFile on Ubuntu
 ===================================================
 1. (All Node) Install Component for NFS ShareFile by command:
-sudo apt-get install nfs-kernel-server
-sudo apt-get install nfs-common
+sudo apt-get install -y nfs-kernel-server nfs-common
+sudo apt-get install -y nfs-common
 
-2. (kubernetes-ms) Create new directory for share and change permission for allow all operate by command:
+2. (Master) Create new directory for share and change permission for allow all operate by command:
 sudo mkdir -p /var/nfsshare
 sudo chmod 777 /var/nfsshare
 sudo chown nobody:nogroup /var/nfsshare
 
 
-3. (kubernetes-ms) Edit permission for NFS on /etc/exports:
+3. (Master) Edit permission for NFS on /etc/exports:
 sudo vi /etc/exports ==> Add new line below
 ---------------------------------------------------
-/var/nfsshare    192.168.99.0/24(rw,sync,no_subtree_check,no_root_squash)       ==> Case GoogleCloud
-
-/var/nfsshare    10.38.14.0/24(rw,sync,no_subtree_check,no_root_squash)       ==> Case OnPremise
+/var/nfsshare    10.0.0.0/16(rw,sync,no_subtree_check,no_root_squash)
 ---------------------------------------------------
 
-4. (kubernetes-ms) Update NFS table for announce share and start nfs server by command:
+4. (Master) Update NFS table for announce share and start nfs server by command:
 sudo exportfs -a
 sudo service nfs-kernel-server start
 
 5. (All Node) Test access share file:
-Google Cloud:
 sudo mkdir -p /mnt/nfs_share
-sudo mount -t nfs 192.168.99.200:/var/nfsshare /mnt/nfs_share
+sudo mount -t nfs <Private of Master Node>:/var/nfsshare /mnt/nfs_share
 df -kh
-
-Onpremise:
-sudo mkdir -p /mnt/nfs_share
-sudo mount -t nfs 10.38.14.200:/var/nfsshare /mnt/nfs_share
-df -kh
-
 
 6. (All node) Test create file and check  by command:
-(kubernetes-ms): touch /mnt/nfs_share/test_ms
-(kubernetes-1): touch /mnt/nfs_share/test_1
-(kubernetes-2): touch /mnt/nfs_share/test_2
+(Master): touch /mnt/nfs_share/test_ms
+(Worker): touch /mnt/nfs_share/test_1
+(Worker): touch /mnt/nfs_share/test_2
 (any node): ls -lh /mnt/nfs_share
 (any node): rm /mnt/nfs_share/*
 
@@ -56,47 +47,47 @@ df -kh
 Part 2: Integrate with Persistency Volume (PV),  and Persistency Volume Claim (PVC)
 ===================================================
 1. (local) Copy nessesary sourcecode to server by command (Or github can skip):
-Google Cloud:
-	gcloud compute scp *.py,*.yml kubernetes-ms:/home/<your account>/
-	gcloud compute --project "kubernetesproject-170714" ssh "kubernetes-ms"
+scp -i k8s_lab *.yml ubuntu@<Public IP Address of master>:/home/ubuntu/
+scp -i k8s_lab *.yml ubuntu@<Public IP Address of node1>:/home/ubuntu/
+scp -i k8s_lab *.yml ubuntu@<Public IP Address of node2>:/home/ubuntu/
 
-Onpremise:
-	scp *.py, *.yml xxxxxx@x.x.x.x:/home/<your account>/
-
-
-2. (kubernetes-ms) Copy sourcecode to NFS/Create Storage Class/ Volume (PV/PVC)/Deployment by command:
-Google Cloud:
+2. (Master) Copy sourcecode to NFS/Create Storage Class/ Volume (PV/PVC)/Deployment by command:
 cp mainlite.py /mnt/nfs_share/ (In case run via github or Play with K8S: curl  https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.7_Persistent_Storage/mainlite.py > /mnt/nfs_share/mainlite.py)
-kubectl create -f nfs_pv.yml    (In case run via github or Play with K8S: kubectl create -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.7_Persistent_Storage/nfs_pv.yml)
-kubectl create -f nfs_pvc.yml   (In case run via github or Play with K8S: kubectl create -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.7_Persistent_Storage/nfs_pvc.yml)
 
-Onpremise:
-cp mainlite.py /mnt/nfs_share/ (In case run via github or Play with K8S: curl  https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.7_Persistent_Storage/mainlite.py > /mnt/nfs_share/mainlite.py)
-kubectl create -f nfs_pv_onpremise.yml    (In case run via github or Play with K8S: kubectl create -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.7_Persistent_Storage/nfs_pv_onpremise.yml)
-kubectl create -f nfs_pvc.yml   (In case run via github or Play with K8S: kubectl create -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.7_Persistent_Storage/nfs_pvc.yml)
+3. (Master) Download file pv and edit ip address of NFS to <Private IP Address of master>
+curl https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.7_Persistent_Storage/nfs_pv.yml > nfs_pv.yml
 
+vi nfs_pv.yml (Edit IP Address to Your Private IP Address of Master)
+
+kubectl create -f nfs_pv.yml
+
+4. (Master) Check status of PV by command:
 kubectl get pv
 kubectl describe pv/nfs-share-pv
+
+5. (Master) Create PVC for Claim Storage by command: 
+kubectl create -f nfs_pvc.yml   (In case run via github or Play with K8S: kubectl create -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.7_Persistent_Storage/nfs_pvc.yml)
+
+6. (Master) Check status of PVC by command:
 kubectl get pvc
 kubectl describe pvc/nfs-share-pvc
 
-3. (kubernetes-ms) Create Deployment and Persistency Volume Claim (PVC) by command:
+7. (Master) Create Deployment and Persistency Volume Claim (PVC) by command:
 kubectl create -f nfs_webtest_deploy.yml    (In case run via github or Play with K8S: kubectl create -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.7_Persistent_Storage/nfs_webtest_deploy.yml)
 kubectl create -f nfs_webtest_svc.yml   (In case run via github or Play with K8S: kubectl create -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.7_Persistent_Storage/nfs_webtest_svc.yml)
 kubectl get deployment
 kubectl get svc
 
-
-5. (kubernetes-ms) Access to pods by kubectl or docker exec and check mount volume by command:
+8. (Master) Access to pods by kubectl or docker exec and check mount volume by command:
 kubectl exec -it <pods name> sh
 or
 docker exec -it <container id> sh
 
-6. (kubernetes-ms:inside pods) Check volume from NFS inside container and test create file by command:
+9. (Master:inside pods) Check volume from NFS inside container and test create file by command:
 df -kh ==> check /usr/src/app 
 exit
 
-7. (kubernetes-ms) Access to all pods for check/create file by command:
+10. (Master) Access to all pods for check/create file by command:
     kubectl exec -it <pods name> sh (Pods: 1)
     touch /usr/src/app/test-Pods1
     ls -lh /usr/src/app
@@ -113,15 +104,8 @@ exit
     rm /usr/src/app/test-Pods*
     exit
 
-8. (kubernetes-ms) Clean Up file and deployment by command:
-    Google Cloud:
+11. (Master) Clean Up file and deployment by command:
     kubectl delete -f nfs_webtest_deploy.yml    (In case run via github or Play with K8S: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.7_Persistent_Storage/nfs_webtest_deploy.yml)
     kubectl delete -f nfs_webtest_svc.yml   (In case run via github or Play with K8S: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.7_Persistent_Storage/nfs_webtest_svc.yml)
     kubectl delete -f nfs_pvc.yml   (In case run via github or Play with K8S: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.7_Persistent_Storage/nfs_pvc.yml)
     kubectl delete -f nfs_pv.yml    (In case run via github or Play with K8S: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.7_Persistent_Storage/nfs_pv.yml)
-
-    Onpremise:
-    kubectl delete -f nfs_webtest_deploy.yml    (In case run via github or Play with K8S: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.7_Persistent_Storage/nfs_webtest_deploy.yml)
-    kubectl delete -f nfs_webtest_svc.yml   (In case run via github or Play with K8S: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.7_Persistent_Storage/nfs_webtest_svc.yml)
-    kubectl delete -f nfs_pvc.yml   (In case run via github or Play with K8S: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.7_Persistent_Storage/nfs_pvc.yml)
-    kubectl delete -f nfs_pv_onpremise.yml    (In case run via github or Play with K8S: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20170128/master/WorkShop_2.7_Persistent_Storage/nfs_pv_onpremise.yml)

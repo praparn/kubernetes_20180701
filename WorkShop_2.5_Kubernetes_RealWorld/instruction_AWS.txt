@@ -2,17 +2,17 @@ Instruction for Workshop 2.5 Kubernetes in RealWorld:
 Note: This instruction will start lab for kubernetes for real workshop on AWS:
 ====================================================
 Lab Description: (Check you excel sheet)
-Machine name		            Roles:						IP Address:
-GroupX_Kubernetes_Master	    Master						10.0.X.X
-GroupX_Kubernetes_Worker1       NodePort					10.0.X.X
-GroupX_Kubernetes_Worker2       NodePort					10.0.X.X
+Machine name		            Roles:						IP Address: (Private)		IP Address: (Public)
+GroupX_Kubernetes_Master	    Master						10.0.X.X					X.X.X.X					
+GroupX_Kubernetes_Worker1       NodePort					10.0.X.X					X.X.X.X
+GroupX_Kubernetes_Worker2       NodePort					10.0.X.X					X.X.X.X
 ===================================================
 0. Follow document pdf for access ssh (Windows/MACOS)
 
 1. (all node) SSH to target machine with command below:
-ssh -i k8s_lab ubuntu@<ip address of Master>
-ssh -i k8s_lab ubuntu@<ip address of NodePort1>
-ssh -i k8s_lab ubuntu@<ip address of NodePort2>
+ssh -i k8s_lab ubuntu@<Public IP Address of Master>
+ssh -i k8s_lab ubuntu@<Public IP Address of NodePort1>
+ssh -i k8s_lab ubuntu@<Public IP Address of NodePort2>
 
 2. (all node) Setup Script for Kubernetes
 sudo su -
@@ -24,9 +24,9 @@ iptables-restore < /tmp/iptables.conf
 exit
 
 3. (all node) Relogon all node
-ssh -i k8s_lab ubuntu@<ip address of Master>
-ssh -i k8s_lab ubuntu@<ip address of NodePort1>
-ssh -i k8s_lab ubuntu@<ip address of NodePort2>
+ssh -i k8s_lab ubuntu@<Public IP Address of Master>
+ssh -i k8s_lab ubuntu@<Public IP Address of NodePort1>
+ssh -i k8s_lab ubuntu@<Public IP Address of NodePort2>
 
 4. (Master) initial cluster by command:
 	sudo su -
@@ -165,4 +165,3 @@ kubectl create -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/
 21. Clean Up Lab:
 	kubectl delete -f webtest_deploy.yml	(In case run via github: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.4_Ingress_Network/webtest_deploy.yml)
 	kubectl delete -f webtest_deploy2.yml	(In case run via github: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.4_Ingress_Network/webtest_deploy2.yml)
-	kubectl delete deployment/curl
