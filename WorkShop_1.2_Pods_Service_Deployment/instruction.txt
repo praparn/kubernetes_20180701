@@ -13,7 +13,6 @@ docker image pull labdocker/cluster:webservice
 docker image pull labdocker/cluster:webcache_kubernetes
 docker image pull labdocker/cadvisor:latest
 
-
 ###################################################################################
 
 1. Get command prompt for access folder workshop 1.2 by command :cd /xxxx/WorkShop_1.2_Pods_Service_Deployment/singlecontainer
@@ -48,7 +47,7 @@ docker image pull labdocker/cadvisor:latest
 8. Test access to container in Pods by command:
 	kubectl exec -it webtest -c webtest sh
 
-7. Clear environment by delete Pods and service by command:
+8. Clear environment by delete Pods and service by command:
 	kubectl delete  -f webtest_pod.yml	(In case run via github: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_1.2_Pods_Service_Deployment/singlecontainer/webtest_pod.yml)
 	kubectl delete  -f webtest_svc.yml 	(In case run via github: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_1.2_Pods_Service_Deployment/singlecontainer/webtest_svc.yml)
 
