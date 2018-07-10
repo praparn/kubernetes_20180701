@@ -66,7 +66,6 @@ kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/s
 kubectl apply -f https://github.com/kubernetes/heapster/raw/master/deploy/kube-config/rbac/heapster-rbac.yaml
 kubectl apply -f https://github.com/kubernetes/heapster/raw/master/deploy/kube-config/influxdb/heapster.yaml
 kubectl apply -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.5_Kubernetes_RealWorld/influxdb.yaml
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/heapster/master/deploy/kube-config/influxdb/influxdb.yaml
 kubectl create clusterrolebinding insecure-dashboard --clusterrole=cluster-admin --serviceaccount=kube-system:kubernetes-dashboard
 watch kubectl get pods --all-namespaces
 
