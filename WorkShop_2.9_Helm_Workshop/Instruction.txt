@@ -107,7 +107,8 @@ export NODE_PORT=$(kubectl get --namespace default -o jsonpath="{.spec.ports[0].
 kubectl get secret --namespace default helmgrafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
 
 4. Check release for helm by command:
-  helm ls --all
+   helm ls --all
+   watch kubectl get pods
 
 5. Check port to access by command:
   kubectl get svc/helmgrafana

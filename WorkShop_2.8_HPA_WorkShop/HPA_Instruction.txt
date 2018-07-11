@@ -1,12 +1,7 @@
 ====================================================
 Part0: Enable Heapster and Metric Server
 ====================================================
-1. Enable heapster by command:
-	minikube addons enable heapster
-	minikube addons open heapster
-	minikube addons list
-
-2. Create Metric Server:
+1. (Master) Create Metric Server:
 	git clone https://github.com/kubernetes-incubator/metrics-server.git
 	cd metrics-server/
 	kubectl create -f deploy/1.8+/
@@ -30,13 +25,14 @@ Part 1: HPA Configuration:
 	kubectl autoscale deployment/webtest --min=1 --max=10 --cpu-percent=10 
 
 5. Monitor by command:
-	kubectl get hpa
+	watch kubectl get hpa		==> Until Get Performance Data
+
 	kubectl describe hpa/webtest
 
 6. Generate Load:
-	kubectl run -i --tty load-generator --image=busybox /bin/sh	<Check Until Load Generator WorkFine>
+	kubectl run -i --tty load-generator --image=busybox /bin/sh			==> <Check Until Load Generator WorkFine>
 	wget -q -O- http://webtest.default.svc.cluster.local:5000
-	while true; sleep 0.001; do wget -q -O- http://webtest.default.svc.cluster.local:5000; done
+	while true; sleep 0.01; do wget -q -O- http://webtest.default.svc.cluster.local:5000; done
 
 7. Create another shell for monitor performance by command: (Interval is 5 min)
 	kubectl get hpa
