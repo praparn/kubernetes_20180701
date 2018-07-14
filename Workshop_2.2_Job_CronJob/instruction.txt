@@ -14,6 +14,7 @@ Create Job for Monitor System via LINE:
 1. Get command prompt for access folder workshop 2.2 by command :cd /xxxx/WorkShop_2.2_Job_CronJob
 2. Check File on WorkShop
 3. Open job.yml file and Edit Environment (Show Information Mode):
+(In case of Cloud: curl https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/Workshop_2.2_Job_CronJob/job.yml > job.yml)
 	        env:
         - name: TITLE
           value: "BOT:Praparn L."					==> Input Your Name
@@ -65,6 +66,7 @@ kubectl delete -f job.yml
           value: "EIeqyillzkzpaCo1ROrebZTcGbIyzDZHpOjcdd0t6CX"	==> Input LINE TOKEN
 
 9. Create Job by command:
+(In case of Cloud: curl https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/Workshop_2.2_Job_CronJob/job_notify.yml > job_notify.yml)
 	kubectl create -f job_notify.yml 
 	kubectl get jobs -o wide
 	kubectl get pods -o wide

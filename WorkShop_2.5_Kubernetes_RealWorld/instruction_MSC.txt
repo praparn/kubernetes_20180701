@@ -8,11 +8,13 @@ GroupX_Kubernetes_Worker1       NodePort					10.0.X.X					X.X.X.X
 GroupX_Kubernetes_Worker2       NodePort					10.0.X.X					X.X.X.X
 ===================================================
 0. Follow document pdf for access ssh (Windows/MACOS)
+Username: ak
+Password: Docker@1234
 
 1. (all node) SSH/Putty to target machine with command below:
-ssh -i k8s_lab ubuntu@<Public IP Address of Master>
-ssh -i k8s_lab ubuntu@<Public IP Address of NodePort1>
-ssh -i k8s_lab ubuntu@<Public IP Address of NodePort2>
+ssh ak@10.40.42.X   - Master
+ssh ak@10.40.42.X   - Worker1
+ssh ak@10.40.42.X   - Worker2 
 
 2. (all node) Setup TMUX script and SSH for Share Session:
 sudo apt-get update && sudo apt-get install -y tmux
@@ -23,8 +25,9 @@ tmux new -s Lab
 
 3. (all node) Setup Script for Kubernetes
 sudo su -
-chmod +x /home/ubuntu/setup.sh
-/home/ubuntu/setup.sh
+curl https://raw.githubusercontent.com/praparn/sourcesetup/master/standard_kubernetes.sh > /home/ak/setup.sh
+chmod +x /home/ak/setup.sh
+/home/ak/setup.sh
 iptables-save > /tmp/iptables.conf
 sed -i -- 's/DROP/ACCEPT/g' /tmp/iptables.conf
 iptables-restore < /tmp/iptables.conf
@@ -60,8 +63,7 @@ ssh -i k8s_lab ubuntu@<Public IP Address of NodePort2>		&& tmux new -s Lab
 
   Optional:
 	1. copy configuration on adminconfig.conf ==> ~/.kube/config (3 Part: cluster, context, users)
-	2. kubectl config get-contexts
-	3. kubectl config use-context <context name>
+	2. kubectl config use-context <context name>
 
 8. (Master) Create calico net plugin for network for cluster by command:
 	kubectl apply -f https://docs.projectcalico.org/v3.1/getting-started/kubernetes/installation/hosted/kubeadm/1.7/calico.yaml
@@ -135,11 +137,17 @@ kubectl apply -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/m
 # Configure rbac
 kubectl apply -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.5_Kubernetes_RealWorld/kubernetes-ingress/install/rbac/rbac.yaml
 
+# Deploy with nginx
+kubectl apply -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.5_Kubernetes_RealWorld/kubernetes-ingress/install/deployment/nginx-ingress.yaml
+
 # Create Daemon Setup
 kubectl apply -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.5_Kubernetes_RealWorld/kubernetes-ingress/install/daemon-set/nginx-ingress.yaml
 
 # Check ingress running
 watch kubectl get pods --namespace=nginx-ingress
+
+# Create NodePort for Ingress access
+kubectl create -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.5_Kubernetes_RealWorld/kubernetes-ingress/install/service/nodeport.yaml
 
 22. (Master) Test deploy ingress service
 
@@ -155,6 +163,7 @@ watch kubectl get pods --namespace=nginx-ingress
 	kubectl get ing -o wide
 	kubectl describe ing/ingresswebtest
 
+
 23. Test access website by command or browser:
 	curl http://<Public IP of Any Node> -H 'Host:webtest1.kuberneteslabthailand.com'
 	curl http://<Public IP of Any Node> -H 'Host:webtest2.kuberneteslabthailand.com'
@@ -162,26 +171,6 @@ watch kubectl get pods --namespace=nginx-ingress
 24. Delete Existing Ingress by command:
 	kubectl delete -f ingress_webtest.yml	(In case run via github: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.4_Ingress_Network/ingress_webtest.yml)
 
-25. Create TLS Secret by command:
-	kubectl create -f ingress_webtest_tls_secret_webtest1.yml 	(In case run via github: kubectl create -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.4_Ingress_Network/ingress_webtest_tls_secret_webtest1.yml )
-	kubectl create -f ingress_webtest_tls_secret_webtest2.yml 	(In case run via github: kubectl create -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.4_Ingress_Network/ingress_webtest_tls_secret_webtest2.yml )
-
-26. Create ingress for TLS by command:
-	kubectl create -f ingress_webtest_tls.yml 	(In case run via github: kubectl create -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.4_Ingress_Network/ingress_webtest_tls.yml )
-	kubectl get ing/ingresswebtesttls -o wide
-	kubectl describe ing/ingresswebtesttls
-
-27. Test access website by browser:
-	https://webtest1.kuberneteslabthailand.com
-	https://webtest2.kuberneteslabthailand.com
-	
-28. Clean Up Lab:
-	kubectl delete -f ingress_webtest_tls.yml	 (In case run via github: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.4_Ingress_Network/ingress_webtest_tls.yml)
-	kubectl delete -f ingress_webtest_tls_secret_webtest1.yml	(In case run via github: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.4_Ingress_Network/ingress_webtest_tls_secret_webtest1.yml)
-	kubectl delete -f ingress_webtest_tls_secret_webtest2.yml	(In case run via github: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.4_Ingress_Network/ingress_webtest_tls_secret_webtest2.yml)
+25. Clean Up Lab:
 	kubectl delete -f webtest_deploy.yml	(In case run via github: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.4_Ingress_Network/webtest_deploy.yml)
 	kubectl delete -f webtest_deploy2.yml	(In case run via github: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.4_Ingress_Network/webtest_deploy2.yml)
-
-
-	====================================== Dashboard for Monitor (If we have time on last class) ==================================================
-	https://github.com/camilb/prometheus-kubernetes
