@@ -1,0 +1,180 @@
+Instruction for Workshop 2.5 Kubernetes in RealWorld:
+Note: This instruction will start lab for kubernetes for real workshop on AWS:
+====================================================
+Lab Description: (Check you excel sheet)
+Machine name		            Roles:						IP Address: (Private)		IP Address: (Public)
+GroupX_Kubernetes_Master	    Master						10.0.1.9					54.179.186.235				
+GroupX_Kubernetes_Worker1       NodePort					10.0.1.57					13.250.127.87
+GroupX_Kubernetes_Worker2       NodePort					10.0.1.128					54.169.160.229
+GroupX_Kubernetes_Worker3       NodePort					10.0.1.198					18.136.103.146
+===================================================
+Prerequiste
+===================================================
+
+1. (all node) SSH/Putty to target machine with command below:
+ssh -i lab_access ubuntu@<Public IP Address of Master>
+ssh -i lab_access ubuntu@<Public IP Address of NodePort1>
+ssh -i lab_access ubuntu@<Public IP Address of NodePort2>
+ssh -i lab_access ubuntu@<Public IP Address of NodePort2>
+
+1. (all node) Setup 
+sudo su -
+chmod +x /home/ubuntu/setup.sh
+/home/ubuntu/setup.sh
+
+#### For Kuber 1.11.2 is not ness
+apt-get install -y iptables-persistent netfilter-persistent
+iptables-save > /tmp/iptables.conf
+sed -i -- 's/DROP/ACCEPT/g' /tmp/iptables.conf
+iptables-restore < /tmp/iptables.conf
+iptables-save
+
+
+2. (Master) initial cluster by command:
+	sudo su -
+	modprobe br_netfilter
+	swapoff -a
+	kubeadm init --kubernetes-version=v1.11.2 --pod-network-cidr=192.168.0.0/16 --apiserver-cert-extra-sans <public ip>
+	exit
+
+	*Remark: Need to record token Output
+    -------------------------------------------------
+    Token output:
+    -------------------------------------------------
+kubeadm join 10.21.1.115:6443 --token hik4iq.4iyvmi8tq6qouxni --discovery-token-ca-cert-hash sha256:0bf6eea44c5900f99b4f6e7742c6ed51cb9dfb2a02279f275db58531ae51ee56
+	-------------------------------------------------
+
+3. (Master) Setup run cluster system by command (Regular User):
+	mkdir -p $HOME/.kube
+    sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+	sudo chown $(id -u):$(id -g) $HOME/.kube/config
+	kubectl taint nodes --all node-role.kubernetes.io/master-
+
+4. (local) SCP Certificate from AWS to Local:
+    scp -i k8s_lab ubuntu@<ip address of master>:/home/ubuntu/.kube/config adminconfig.conf
+
+
+5. (Master) Create calico net plugin for network for cluster by command:
+	kubectl apply -f https://docs.projectcalico.org/v3.1/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
+	kubectl apply -f https://docs.projectcalico.org/v3.1/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
+
+6. (Master) Check master readiness and dns by command (Take 5 - 10 min):
+	watch kubectl get pods --all-namespaces
+
+7. (Master) Install dashboard by command:
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml
+kubectl apply -f https://github.com/kubernetes/heapster/raw/master/deploy/kube-config/rbac/heapster-rbac.yaml
+kubectl apply -f https://github.com/kubernetes/heapster/raw/master/deploy/kube-config/influxdb/heapster.yaml
+kubectl apply -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.5_Kubernetes_RealWorld/influxdb.yaml
+kubectl create clusterrolebinding insecure-dashboard --clusterrole=cluster-admin --serviceaccount=kube-system:kubernetes-dashboard
+watch kubectl get pods --all-namespaces
+
+8. (local) Edit file adminconfig.conf for change ip address from private to public ip:
+vi adminconfig.conf
+
+9. (local) Configure local kubectl for access and command cluster:
+kubectl --kubeconfig ./adminconfig.conf get nodes
+kubectl --kubeconfig ./adminconfig.conf get svc
+
+10. (local) Open dashboard by command:
+kubectl --kubeconfig ./adminconfig.conf proxy --accept-hosts '.*'
+
+11. (local) Open browser by command
+http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/
+
+
+12. (Worker1, Worker2, Worker3) ssh and join to cluster by command:
+sudo su -
+modprobe br_netfilter
+swapoff -a
+kubeadm join --token 2d2353.98187e352c741dd0 10.0.1.17:6443 --discovery-token-ca-cert-hash sha256:c3e75e689dadfb85baad004b7b777801c489eb1551901abc8e3c19c1e15b7add
+exit
+
+13. (Master) Check Node in Cluster by command (This take 5 - 10 min):
+watch kubectl get nodes
+
+
+14. (Master)Check Pods from all cluster system running by command:
+watch kubectl get pods --all-namespaces
+
+15. (Master) Test deployment basic nginx pods by command
+kubectl run webtest --image=labdocker/nginx:latest --port=80
+kubectl get pods -o wide
+kubectl expose deployment webtest --target-port=80 --type=NodePort
+kubectl get svc -o wide
+
+16. (Master) Test get web outside:
+https://x.x.x.x:xxxx
+https://x.x.x.x:xxxx
+https://x.x.x.x:xxxx
+
+17. (Master) Cleanup Lab by command:
+kubectl delete deployment/webtest
+kubectl delete svc/webtest
+
+
+====================================== Create Ingress Controller====================================================
+
+18. (Master) Create ingress set:
+# Create Namespace and SA 
+kubectl apply -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.5_Kubernetes_RealWorld/kubernetes-ingress/install/common/ns-and-sa.yaml
+
+# Create Default Secret for 404 Return
+kubectl apply -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.5_Kubernetes_RealWorld/kubernetes-ingress/install/common/default-server-secret.yaml
+
+# Add optional for configure nginx customization (Ref: https://github.com/nginxinc/kubernetes-ingress/tree/master/examples/customization)
+kubectl apply -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.5_Kubernetes_RealWorld/kubernetes-ingress/install/common/nginx-config.yaml
+
+# Configure rbac
+kubectl apply -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.5_Kubernetes_RealWorld/kubernetes-ingress/install/rbac/rbac.yaml
+
+# Create Daemon Setup
+kubectl apply -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.5_Kubernetes_RealWorld/kubernetes-ingress/install/daemon-set/nginx-ingress.yaml
+
+# Check ingress running
+watch kubectl get pods --namespace=nginx-ingress
+
+19. (Master) Test deploy ingress service
+
+# Create Service/Pods/Deployment for webtest1 and webtest2 by command:
+	kubectl create -f webtest_deploy.yml 	(In case run via github: kubectl create -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.4_Ingress_Network/webtest_deploy.yml )
+	kubectl create -f webtest_deploy2.yml 	(In case run via github: kubectl create -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.4_Ingress_Network/webtest_deploy2.yml )
+
+# View service for connection by command:
+	kubectl get svc -o wide
+
+# Create ingress for access by command:
+	kubectl create -f ingress_webtest.yml 	(In case run via github: kubectl create -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.4_Ingress_Network/ingress_webtest.yml )
+	kubectl get ing -o wide
+	kubectl describe ing/ingresswebtest
+
+20. Test access website by command or browser:
+	curl http://<Public IP of Any Node> -H 'Host:webtest1.kuberneteslabthailand.com'
+	curl http://<Public IP of Any Node> -H 'Host:webtest2.kuberneteslabthailand.com'
+
+21. Delete Existing Ingress by command:
+	kubectl delete -f ingress_webtest.yml	(In case run via github: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.4_Ingress_Network/ingress_webtest.yml)
+
+22. Create TLS Secret by command:
+	kubectl create -f ingress_webtest_tls_secret_webtest1.yml 	(In case run via github: kubectl create -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.4_Ingress_Network/ingress_webtest_tls_secret_webtest1.yml )
+	kubectl create -f ingress_webtest_tls_secret_webtest2.yml 	(In case run via github: kubectl create -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.4_Ingress_Network/ingress_webtest_tls_secret_webtest2.yml )
+
+23. Create ingress for TLS by command:
+	kubectl create -f ingress_webtest_tls.yml 	(In case run via github: kubectl create -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.4_Ingress_Network/ingress_webtest_tls.yml )
+	kubectl get ing/ingresswebtesttls -o wide
+	kubectl describe ing/ingresswebtesttls
+
+24. Test access website by browser:
+	https://webtest1.kuberneteslabthailand.com  or curl https://<Public IP of Any Node> -H 'Host:webtest1.kuberneteslabthailand.com' -k
+	https://webtest2.kuberneteslabthailand.com  or curl https://<Public IP of Any Node> -H 'Host:webtest2.kuberneteslabthailand.com' -k
+	
+25. Clean Up Lab:
+	kubectl delete -f ingress_webtest_tls.yml	 (In case run via github: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.4_Ingress_Network/ingress_webtest_tls.yml)
+	kubectl delete -f ingress_webtest_tls_secret_webtest1.yml	(In case run via github: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.4_Ingress_Network/ingress_webtest_tls_secret_webtest1.yml)
+	kubectl delete -f ingress_webtest_tls_secret_webtest2.yml	(In case run via github: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.4_Ingress_Network/ingress_webtest_tls_secret_webtest2.yml)
+	kubectl delete -f webtest_deploy.yml	(In case run via github: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.4_Ingress_Network/webtest_deploy.yml)
+	kubectl delete -f webtest_deploy2.yml	(In case run via github: kubectl delete -f https://raw.githubusercontent.com/praparn/kubernetes_20180701/master/WorkShop_2.4_Ingress_Network/webtest_deploy2.yml)
+
+
+	====================================== Dashboard for Monitor (If we have time on last class) ==================================================
+	https://github.com/camilb/prometheus-kubernetes
